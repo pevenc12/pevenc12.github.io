@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tags on blog.p</title>
+    <link>https://pevenc12.github.io/tags/</link>
+    <description>Recent content in Tags on blog.p</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 30 Nov 2021 22:03:55 +0800</lastBuildDate><atom:link href="https://pevenc12.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>postgresql</title>
+      <link>https://pevenc12.github.io/tags/postgresql/</link>
+      <pubDate>Tue, 30 Nov 2021 22:03:55 +0800</pubDate>
+      
+      <guid>https://pevenc12.github.io/tags/postgresql/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>vacuum</title>
+      <link>https://pevenc12.github.io/tags/vacuum/</link>
+      <pubDate>Tue, 30 Nov 2021 22:03:55 +0800</pubDate>
+      
+      <guid>https://pevenc12.github.io/tags/vacuum/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>XID</title>
+      <link>https://pevenc12.github.io/tags/xid/</link>
+      <pubDate>Tue, 30 Nov 2021 22:03:55 +0800</pubDate>
+      
+      <guid>https://pevenc12.github.io/tags/xid/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>database</title>
+      <link>https://pevenc12.github.io/tags/database/</link>
+      <pubDate>Sun, 15 Aug 2021 18:10:14 +0800</pubDate>
+      
+      <guid>https://pevenc12.github.io/tags/database/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>datetime</title>
+      <link>https://pevenc12.github.io/tags/datetime/</link>
+      <pubDate>Sun, 15 Aug 2021 18:10:14 +0800</pubDate>
+      
+      <guid>https://pevenc12.github.io/tags/datetime/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>python</title>
+      <link>https://pevenc12.github.io/tags/python/</link>
+      <pubDate>Sun, 15 Aug 2021 18:10:14 +0800</pubDate>
+      
+      <guid>https://pevenc12.github.io/tags/python/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>timezone</title>
+      <link>https://pevenc12.github.io/tags/timezone/</link>
+      <pubDate>Sun, 15 Aug 2021 18:10:14 +0800</pubDate>
+      
+      <guid>https://pevenc12.github.io/tags/timezone/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>explain</title>
+      <link>https://pevenc12.github.io/tags/explain/</link>
+      <pubDate>Tue, 29 Jun 2021 18:15:20 +0000</pubDate>
+      
+      <guid>https://pevenc12.github.io/tags/explain/</guid>
+      <description></description>
+    </item>
+    
+  </channel>
+</rss>
