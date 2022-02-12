@@ -105,11 +105,11 @@
 <ol>
 <li>先來看最簡單的例子，從 tenk1 這個 table 取出所有資料。這個 QUERY PLAN 由一個 plan node 組成。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">EXPLAIN SELECT * FROM tenk1;
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sql" data-lang="sql"><span style="color:#66d9ef">EXPLAIN</span> <span style="color:#66d9ef">SELECT</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">FROM</span> tenk1;
 
                          QUERY PLAN
--------------------------------------------------------------
- Seq Scan on tenk1  (cost=0.00..458.00 rows=10000 width=244)
+<span style="color:#75715e">-------------------------------------------------------------
+</span><span style="color:#75715e"></span> Seq Scan <span style="color:#66d9ef">on</span> tenk1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">00</span>..<span style="color:#ae81ff">458</span>.<span style="color:#ae81ff">00</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10000</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
 </code></pre></div><ul>
 <li>因為 SQL 中並沒有出現 WHERE 子句，所以資料庫執行 Sequence Scan 搜尋整張表。其中的 cost 的單位是可自行定義的，預設值是將<strong>讀取一個 disk page 所花費的時間訂為 1.0</strong>。第五行得到的四個數字所代表的涵意依序為：
 <ul>
@@ -123,26 +123,26 @@
 <ol start="2">
 <li>在第二個例子中，增加一個 WHERE 條件在已經建立索引的欄位 unique1 上。因為查詢到的行數很少，所以使用 Index Scan 。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">EXPLAIN SELECT * FROM tenk1 WHERE unique1 = 42;
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sql" data-lang="sql"><span style="color:#66d9ef">EXPLAIN</span> <span style="color:#66d9ef">SELECT</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">FROM</span> tenk1 <span style="color:#66d9ef">WHERE</span> unique1 <span style="color:#f92672">=</span> <span style="color:#ae81ff">42</span>;
 
                                  QUERY PLAN
------------------------------------------------------------------------------
- Index Scan using tenk1_unique1 on tenk1  (cost=0.29..8.30 rows=1 width=244)
-   Index Cond: (unique1 = 42)
+<span style="color:#75715e">-----------------------------------------------------------------------------
+</span><span style="color:#75715e"></span> <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">using</span> tenk1_unique1 <span style="color:#66d9ef">on</span> tenk1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">29</span>..<span style="color:#ae81ff">8</span>.<span style="color:#ae81ff">30</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
+   <span style="color:#66d9ef">Index</span> Cond: (unique1 <span style="color:#f92672">=</span> <span style="color:#ae81ff">42</span>)
 </code></pre></div><ul>
 <li>利用索引找到符合 WHERE 子句的行數只有一行，只要在硬碟上搜尋 page 時執行一次<strong>隨機 I/O</strong> 即可找到該 page ，成本較低。</li>
 </ul>
 <ol start="3">
 <li>承上例，在第三個例子中， WHERE 子句查詢到的行數較多，使用 Bitmap Scan。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">EXPLAIN SELECT * FROM tenk1 WHERE unique1 &lt; 100;
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sql" data-lang="sql"><span style="color:#66d9ef">EXPLAIN</span> <span style="color:#66d9ef">SELECT</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">FROM</span> tenk1 <span style="color:#66d9ef">WHERE</span> unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100</span>;
 
                                   QUERY PLAN
-------------------------------------------------------------------------------
- Bitmap Heap Scan on tenk1  (cost=5.07..229.20 rows=101 width=244)
-   Recheck Cond: (unique1 &lt; 100)
-   -&gt;  Bitmap Index Scan on tenk1_unique1  (cost=0.00..5.04 rows=101 width=0)
-         Index Cond: (unique1 &lt; 100)
+<span style="color:#75715e">------------------------------------------------------------------------------
+</span><span style="color:#75715e"></span> Bitmap Heap Scan <span style="color:#66d9ef">on</span> tenk1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">5</span>.<span style="color:#ae81ff">07</span>..<span style="color:#ae81ff">229</span>.<span style="color:#ae81ff">20</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">101</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
+   <span style="color:#66d9ef">Recheck</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100</span>)
+   <span style="color:#f92672">-&gt;</span>  Bitmap <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">on</span> tenk1_unique1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">00</span>..<span style="color:#ae81ff">5</span>.<span style="color:#ae81ff">04</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">101</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>)
+         <span style="color:#66d9ef">Index</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100</span>)
 </code></pre></div><ul>
 <li>planner 使用 Bitmap Scan 。其中的兩個步驟： Bitmap Index Scan 和 Bitmap Heap Scan 分別對應到前文介紹的流程。 Bitmap Index Scan 利用索引搜尋後建立 bitmap ，而 Bitmap Heap Scan 利用 bitmap 去找出 page 。</li>
 <li>另外也能從 cost 的時間得知兩個 plan node 的發生順序：先執行 Bitmap Index Scan 再執行 Bitmap Heap Scan 。</li>
@@ -150,43 +150,43 @@
 <ol start="4">
 <li>承上例，在第四個例子中， 再多新增一個 WHERE 條件在已建立索引的欄位 unique2 上。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">EXPLAIN SELECT * FROM tenk1 WHERE unique1 &lt; 100 AND unique2 &gt; 9000;
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sql" data-lang="sql"><span style="color:#66d9ef">EXPLAIN</span> <span style="color:#66d9ef">SELECT</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">FROM</span> tenk1 <span style="color:#66d9ef">WHERE</span> unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100</span> <span style="color:#66d9ef">AND</span> unique2 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">9000</span>;
 
                                      QUERY PLAN
--------------------------------------------------------------------------------------
- Bitmap Heap Scan on tenk1  (cost=25.08..60.21 rows=10 width=244)
-   Recheck Cond: ((unique1 &lt; 100) AND (unique2 &gt; 9000))
-   -&gt;  BitmapAnd  (cost=25.08..25.08 rows=10 width=0)
-         -&gt;  Bitmap Index Scan on tenk1_unique1  (cost=0.00..5.04 rows=101 width=0)
-               Index Cond: (unique1 &lt; 100)
-         -&gt;  Bitmap Index Scan on tenk1_unique2  (cost=0.00..19.78 rows=999 width=0)
-               Index Cond: (unique2 &gt; 9000)
+<span style="color:#75715e">-------------------------------------------------------------------------------------
+</span><span style="color:#75715e"></span> Bitmap Heap Scan <span style="color:#66d9ef">on</span> tenk1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">25</span>.<span style="color:#ae81ff">08</span>..<span style="color:#ae81ff">60</span>.<span style="color:#ae81ff">21</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
+   <span style="color:#66d9ef">Recheck</span> Cond: ((unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100</span>) <span style="color:#66d9ef">AND</span> (unique2 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">9000</span>))
+   <span style="color:#f92672">-&gt;</span>  BitmapAnd  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">25</span>.<span style="color:#ae81ff">08</span>..<span style="color:#ae81ff">25</span>.<span style="color:#ae81ff">08</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>)
+         <span style="color:#f92672">-&gt;</span>  Bitmap <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">on</span> tenk1_unique1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">00</span>..<span style="color:#ae81ff">5</span>.<span style="color:#ae81ff">04</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">101</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>)
+               <span style="color:#66d9ef">Index</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">100</span>)
+         <span style="color:#f92672">-&gt;</span>  Bitmap <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">on</span> tenk1_unique2  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">00</span>..<span style="color:#ae81ff">19</span>.<span style="color:#ae81ff">78</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">999</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>)
+               <span style="color:#66d9ef">Index</span> Cond: (unique2 <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">9000</span>)
 </code></pre></div><ul>
 <li>首先分別對兩個索引進行 Bitmap Index Scan 得到兩組 bitmap ，再將兩組 bitmap 進行 AND 運算。得到最後的 bitmap 後再進行 Bitmap Heap Scan 找出 page 。兩組 Bitmap Index Scan 執行時對應到不同的 B-Tree ，因此可以同時進行，加速 QUERY PLAN 。</li>
 </ul>
 <ol start="5">
 <li>在接下來的範例中，包含了跨表連接（JOIN），其中 unique1 與 unique2 皆已建立索引。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">EXPLAIN SELECT *
-FROM tenk1 t1, tenk2 t2
-WHERE t1.unique1 &lt; 10 AND t1.unique2 = t2.unique2;
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sql" data-lang="sql"><span style="color:#66d9ef">EXPLAIN</span> <span style="color:#66d9ef">SELECT</span> <span style="color:#f92672">*</span>
+<span style="color:#66d9ef">FROM</span> tenk1 t1, tenk2 t2
+<span style="color:#66d9ef">WHERE</span> t1.unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span> <span style="color:#66d9ef">AND</span> t1.unique2 <span style="color:#f92672">=</span> t2.unique2;
 
                                       QUERY PLAN
---------------------------------------------------------------------------------------
- Nested Loop  (cost=4.65..118.62 rows=10 width=488)
-   -&gt;  Bitmap Heap Scan on tenk1 t1  (cost=4.36..39.47 rows=10 width=244)
-         Recheck Cond: (unique1 &lt; 10)
-         -&gt;  Bitmap Index Scan on tenk1_unique1  (cost=0.00..4.36 rows=10 width=0)
-               Index Cond: (unique1 &lt; 10)
-   -&gt;  Index Scan using tenk2_unique2 on tenk2 t2  (cost=0.29..7.91 rows=1 width=244)
-         Index Cond: (unique2 = t1.unique2)
+<span style="color:#75715e">--------------------------------------------------------------------------------------
+</span><span style="color:#75715e"></span> Nested Loop  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">65</span>..<span style="color:#ae81ff">118</span>.<span style="color:#ae81ff">62</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">488</span>)
+   <span style="color:#f92672">-&gt;</span>  Bitmap Heap Scan <span style="color:#66d9ef">on</span> tenk1 t1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">36</span>..<span style="color:#ae81ff">39</span>.<span style="color:#ae81ff">47</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
+         <span style="color:#66d9ef">Recheck</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>)
+         <span style="color:#f92672">-&gt;</span>  Bitmap <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">on</span> tenk1_unique1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">00</span>..<span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">36</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>)
+               <span style="color:#66d9ef">Index</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>)
+   <span style="color:#f92672">-&gt;</span>  <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">using</span> tenk2_unique2 <span style="color:#66d9ef">on</span> tenk2 t2  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">29</span>..<span style="color:#ae81ff">7</span>.<span style="color:#ae81ff">91</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
+         <span style="color:#66d9ef">Index</span> Cond: (unique2 <span style="color:#f92672">=</span> t1.unique2)
 </code></pre></div><ul>
 <li>
 <p>Nested Loop 為迴圈，會重複執行子 plan node ，次數要從子 plan node 上觀察。</p>
 </li>
 <li>
 <p>這個範例中， Nested Loop 包含兩個子 plan node ，第一個是在 tenk1 上進行 Bitmap Scan 。第二個 plan node 是在 tenk2 上進行 Index Scan ，類似執行下列的 SQL：</p>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">SELECT ... WHERE t2.unique2 = constant
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sql" data-lang="sql"><span style="color:#66d9ef">SELECT</span> ... <span style="color:#66d9ef">WHERE</span> t2.unique2 <span style="color:#f92672">=</span> constant
 </code></pre></div></li>
 <li>
 <p>整體的步驟如下：</p>
@@ -206,21 +206,21 @@ WHERE t1.unique1 &lt; 10 AND t1.unique2 = t2.unique2;
 <ol start="6">
 <li>如果更改查詢條件，  planner 也會決定不一樣的連接方式。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">EXPLAIN SELECT *
-FROM tenk1 t1, tenk2 t2
-WHERE t1.unique1 &lt; 10 AND t2.unique2 &lt; 10 AND t1.hundred &lt; t2.hundred;
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sql" data-lang="sql"><span style="color:#66d9ef">EXPLAIN</span> <span style="color:#66d9ef">SELECT</span> <span style="color:#f92672">*</span>
+<span style="color:#66d9ef">FROM</span> tenk1 t1, tenk2 t2
+<span style="color:#66d9ef">WHERE</span> t1.unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span> <span style="color:#66d9ef">AND</span> t2.unique2 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span> <span style="color:#66d9ef">AND</span> t1.hundred <span style="color:#f92672">&lt;</span> t2.hundred;
 
                                          QUERY PLAN
----------------------------------------------------------------------------------------------
- Nested Loop  (cost=4.65..49.46 rows=33 width=488)
-   Join Filter: (t1.hundred &lt; t2.hundred)
-   -&gt;  Bitmap Heap Scan on tenk1 t1  (cost=4.36..39.47 rows=10 width=244)
-         Recheck Cond: (unique1 &lt; 10)
-         -&gt;  Bitmap Index Scan on tenk1_unique1  (cost=0.00..4.36 rows=10 width=0)
-               Index Cond: (unique1 &lt; 10)
-   -&gt;  Materialize  (cost=0.29..8.51 rows=10 width=244)
-         -&gt;  Index Scan using tenk2_unique2 on tenk2 t2  (cost=0.29..8.46 rows=10 width=244)
-               Index Cond: (unique2 &lt; 10)
+<span style="color:#75715e">---------------------------------------------------------------------------------------------
+</span><span style="color:#75715e"></span> Nested Loop  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">65</span>..<span style="color:#ae81ff">49</span>.<span style="color:#ae81ff">46</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">33</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">488</span>)
+   <span style="color:#66d9ef">Join</span> Filter: (t1.hundred <span style="color:#f92672">&lt;</span> t2.hundred)
+   <span style="color:#f92672">-&gt;</span>  Bitmap Heap Scan <span style="color:#66d9ef">on</span> tenk1 t1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">36</span>..<span style="color:#ae81ff">39</span>.<span style="color:#ae81ff">47</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
+         <span style="color:#66d9ef">Recheck</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>)
+         <span style="color:#f92672">-&gt;</span>  Bitmap <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">on</span> tenk1_unique1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">00</span>..<span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">36</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>)
+               <span style="color:#66d9ef">Index</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>)
+   <span style="color:#f92672">-&gt;</span>  Materialize  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">29</span>..<span style="color:#ae81ff">8</span>.<span style="color:#ae81ff">51</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
+         <span style="color:#f92672">-&gt;</span>  <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">using</span> tenk2_unique2 <span style="color:#66d9ef">on</span> tenk2 t2  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">29</span>..<span style="color:#ae81ff">8</span>.<span style="color:#ae81ff">46</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>)
+               <span style="color:#66d9ef">Index</span> Cond: (unique2 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>)
 </code></pre></div><ul>
 <li>在範例六中， Materialize node 會將完成 Index Scan 的資料暫存在記憶體中。接下來在 Nested Loop 中再次需要資料時會從記憶體中讀取而不是到硬碟中。</li>
 <li>同範例五，在最後的步驟要進行連接，但這次要再另外通過一個 Filter（t1.hundred &lt; t2.hundred）。</li>
@@ -228,21 +228,21 @@ WHERE t1.unique1 &lt; 10 AND t2.unique2 &lt; 10 AND t1.hundred &lt; t2.hundred;
 <ol start="7">
 <li>最後來看看加上 ANALYZE 之後的 QUERY PLAN。加上ANALYZE 後，資料庫會實際執行 SQL ，並且紀錄<strong>實際</strong>完成的時間以及<strong>實際</strong>回傳的 rows 數量。</li>
 </ol>
-<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">EXPLAIN ANALYZE SELECT *
-FROM tenk1 t1, tenk2 t2
-WHERE t1.unique1 &lt; 10 AND t1.unique2 = t2.unique2;
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-sql" data-lang="sql"><span style="color:#66d9ef">EXPLAIN</span> <span style="color:#66d9ef">ANALYZE</span> <span style="color:#66d9ef">SELECT</span> <span style="color:#f92672">*</span>
+<span style="color:#66d9ef">FROM</span> tenk1 t1, tenk2 t2
+<span style="color:#66d9ef">WHERE</span> t1.unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span> <span style="color:#66d9ef">AND</span> t1.unique2 <span style="color:#f92672">=</span> t2.unique2;
 
                                                            QUERY PLAN
----------------------------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=4.65..118.62 rows=10 width=488) (actual time=0.128..0.377 rows=10 loops=1)
-   -&gt;  Bitmap Heap Scan on tenk1 t1  (cost=4.36..39.47 rows=10 width=244) (actual time=0.057..0.121 rows=10 loops=1)
-         Recheck Cond: (unique1 &lt; 10)
-         -&gt;  Bitmap Index Scan on tenk1_unique1  (cost=0.00..4.36 rows=10 width=0) (actual time=0.024..0.024 rows=10 loops=1)
-               Index Cond: (unique1 &lt; 10)
-   -&gt;  Index Scan using tenk2_unique2 on tenk2 t2  (cost=0.29..7.91 rows=1 width=244) (actual time=0.021..0.022 rows=1 loops=10)
-         Index Cond: (unique2 = t1.unique2)
- Planning time: 0.181 ms
- Execution time: 0.501 ms
+<span style="color:#75715e">---------------------------------------------------------------------------------------------------------------------------------
+</span><span style="color:#75715e"></span> Nested Loop  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">65</span>..<span style="color:#ae81ff">118</span>.<span style="color:#ae81ff">62</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">488</span>) (actual time<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">128</span>..<span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">377</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> loops<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>)
+   <span style="color:#f92672">-&gt;</span>  Bitmap Heap Scan <span style="color:#66d9ef">on</span> tenk1 t1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">36</span>..<span style="color:#ae81ff">39</span>.<span style="color:#ae81ff">47</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>) (actual time<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">057</span>..<span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">121</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> loops<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>)
+         <span style="color:#66d9ef">Recheck</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>)
+         <span style="color:#f92672">-&gt;</span>  Bitmap <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">on</span> tenk1_unique1  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">00</span>..<span style="color:#ae81ff">4</span>.<span style="color:#ae81ff">36</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>) (actual time<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">024</span>..<span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">024</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">10</span> loops<span style="color:#f92672">=</span><span style="color:#ae81ff">1</span>)
+               <span style="color:#66d9ef">Index</span> Cond: (unique1 <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>)
+   <span style="color:#f92672">-&gt;</span>  <span style="color:#66d9ef">Index</span> Scan <span style="color:#66d9ef">using</span> tenk2_unique2 <span style="color:#66d9ef">on</span> tenk2 t2  (cost<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">29</span>..<span style="color:#ae81ff">7</span>.<span style="color:#ae81ff">91</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> width<span style="color:#f92672">=</span><span style="color:#ae81ff">244</span>) (actual time<span style="color:#f92672">=</span><span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">021</span>..<span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">022</span> <span style="color:#66d9ef">rows</span><span style="color:#f92672">=</span><span style="color:#ae81ff">1</span> loops<span style="color:#f92672">=</span><span style="color:#ae81ff">10</span>)
+         <span style="color:#66d9ef">Index</span> Cond: (unique2 <span style="color:#f92672">=</span> t1.unique2)
+ Planning time: <span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">181</span> ms
+ Execution time: <span style="color:#ae81ff">0</span>.<span style="color:#ae81ff">501</span> ms
 </code></pre></div><ul>
 <li>此處 actual time 的單位是毫秒，與 cost 的單位不同。</li>
 <li>實際執行之後，可能會和原本 EXPLAIN 所得的結果不同。</li>
