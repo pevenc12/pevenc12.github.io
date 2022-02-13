@@ -6,6 +6,7 @@
     <description>Recent content in python on blog.p</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-tw</language>
+    <copyright>© Peven</copyright>
     <lastBuildDate>Sun, 15 Aug 2021 18:10:14 +0800</lastBuildDate><atom:link href="https://pevenc12.github.io/tags/python/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Backend：處理時間、時區的幾個提醒</title>

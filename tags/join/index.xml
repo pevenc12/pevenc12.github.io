@@ -6,6 +6,7 @@
     <description>Recent content in join on blog.p</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-tw</language>
+    <copyright>© Peven</copyright>
     <lastBuildDate>Sat, 12 Feb 2022 19:50:15 +0800</lastBuildDate><atom:link href="https://pevenc12.github.io/tags/join/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>PostgreSQL：淺入淺出 EXPLAIN（下）</title>

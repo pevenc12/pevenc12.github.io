@@ -5,6 +5,7 @@
     <link>https://pevenc12.github.io/categories/</link>
     <description>Recent content in Categories on blog.p</description>
     <generator>Hugo -- gohugo.io</generator>
-    <language>zh-tw</language><atom:link href="https://pevenc12.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <language>zh-tw</language>
+    <copyright>© Peven</copyright><atom:link href="https://pevenc12.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>
