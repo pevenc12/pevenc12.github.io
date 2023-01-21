@@ -11,7 +11,7 @@ pygmentscodefencesguesssyntax = true
 [params]
 	mode="toggle"
 	useCDN=false
-	subtitle = "人生目標是在死之前努力學習。"
+	subtitle = "Learn Until Dead."
 
 
 paginate=3
