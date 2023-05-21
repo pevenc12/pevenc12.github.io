@@ -1,0 +1,147 @@
+<!doctype html><html><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge"><title>JSON：試著舒服地在關聯式資料庫中使用 - blog.p</title><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="說明、Benchmark、舉例如何好好使用 JSON"><meta property="og:image" content><meta property="og:title" content="JSON：試著舒服地在關聯式資料庫中使用"><meta property="og:description" content="說明、Benchmark、舉例如何好好使用 JSON"><meta property="og:type" content="article"><meta property="og:url" content="https://pevenc12.github.io/posts/json-field-in-rdbms/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2023-05-21T22:45:12+08:00"><meta property="article:modified_time" content="2023-05-21T22:45:12+08:00"><meta name=twitter:card content="summary"><meta name=twitter:title content="JSON：試著舒服地在關聯式資料庫中使用"><meta name=twitter:description content="說明、Benchmark、舉例如何好好使用 JSON"><script src=https://pevenc12.github.io/js/feather.min.js></script>
+<link href=https://pevenc12.github.io/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css rel=stylesheet><link rel=stylesheet type=text/css media=screen href=https://pevenc12.github.io/css/main.ac08a4c9714baa859217f92f051deb58df2938ec352b506df655005dcaf98cc0.css><link id=darkModeStyle rel=stylesheet type=text/css href=https://pevenc12.github.io/css/dark.726cd11ca6eb7c4f7d48eb420354f814e5c1b94281aaf8fd0511c1319f7f78a4.css disabled></head><body><div class=content><header><div class=main><a href=https://pevenc12.github.io/>blog.p</a></div><nav><a href=/>Home</a>
+<a href=/posts>Posts</a>
+<a href=/tags>Tags</a>
+| <span id=dark-mode-toggle onclick=toggleTheme()></span>
+<script src=https://pevenc12.github.io/js/themetoggle.js></script></nav></header><main><article><div class=title><h1 class=title>JSON：試著舒服地在關聯式資料庫中使用</h1><div class=meta>Posted on May 21, 2023</div></div><div class=tldr><strong>tl;dr:</strong>
+開發快樂與維護麻煩的大對決</div><section class=body><h2 id=前言>前言</h2><p>在網路服務中，client-side 與 server-side 常利用 JSON 格式溝通，好用而且易懂。但是在資料庫中，特別是關聯式資料庫（以下稱 RDB），JSON 格式就相當微妙，好用易懂似乎並不是優點，反而會變成缺點。這就是工程上常見的 trade-off。</p><p>本文會先整理一下 JSON Field 於 server-side 開發時要注意的事項，接著介紹如何使用比較容易避開雷點。文中的例子都是使用 Python 程式語言與 PostgreSQL 資料庫。</p><h2 id=資料類型>資料類型</h2><p>以 PostgreSQL 為例，在 RFC7159 規範下，裡面能放的資料格式包含：</p><table><thead><tr><th>JSON primitive type</th><th>PostgreSQL type</th></tr></thead><tbody><tr><td>string</td><td>text</td></tr><tr><td>number</td><td>numeric</td></tr><tr><td>boolean</td><td>boolean</td></tr><tr><td>null</td><td>(none)</td></tr></tbody></table><p>其中 SQL NULL 和 JSON null 是不一樣的概念，無法劃上等號。在程式實作中，存入資料時要注意存入的資料會變成什麼形狀。例如使用 Python 語言與 DjangoJSONEncoder 時，會把 <code>datetime.date</code> 轉為 YYYY-MM-DD 格式的 string、把 <code>Decimal</code> 轉為 string 等等。如果今天有不同的系統都會接上同一個資料庫，要特別小心各個系統對於資料的轉換可能會不同。</p><h2 id=比較>比較</h2><p>工程上，優缺點這件事都是相對於需求而言的，以下會根據 JSON 或 JSON Field 的特點進行討論。</p><h3 id=schema-彈性高>SCHEMA 彈性高</h3><p>相較於 RDB 其他格式的欄位，JSON Field 明顯在 schema 上有很大的彈性，只要是 key-value pair 就可以塞進去 JSON Field。但這樣是好事還是壞事呢？</p><p>如果儲存的資料，是經常變動的、規格複雜、不確定的，那用 JSON Field 來存是適合的。舉例來說，有一個 Transaction 的 Table 要紀錄用戶的付款資料，因為系統支援各種不同的支付方式，所以有一個 payment_detail 來存不同支付方式產生的資料，例如系統有串接 stripe 且用戶付款選擇信用卡支付，可能記錄如下：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-json data-lang=json><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&#34;gateway&#34;</span>: <span style=color:#e6db74>&#34;stripe&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&#34;payment_method&#34;</span>: <span style=color:#e6db74>&#34;credit_card&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&#34;transaction_uuid&#34;</span>: <span style=color:#e6db74>&#34;e148e5ce-8af6-41b6-a503-97be406de81d&#34;</span>,
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>另外如果選擇 Line Pay，可能會記錄：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-json data-lang=json><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&#34;gateway&#34;</span>: <span style=color:#e6db74>&#34;line_pay&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&#34;transactionId&#34;</span>: <span style=color:#e6db74>&#34;2016010112345678910&#34;</span>,
+</span></span><span style=display:flex><span>    <span style=color:#f92672>&#34;orderId&#34;</span>: <span style=color:#e6db74>&#34;test_order_#1&#34;</span>,
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>因為各家 payment gateway 回傳的資料沒有既定格式，甚至同一個 payment gateway 也有可能因為 API 異動而回傳不同其他資料。</p><p>Schema 高彈性當然也有顯而易見的壞處，那就是未來維護的人即使看過 Schema 也沒辦法一眼看出 Table 裡倒底存了哪些東西、用什麼格式存？如果大量使用，可以想見會留下不少債。另外，只要有 JSON Field 存在，就違反了 1NF。</p><h3 id=效能>效能</h3><p>效能永遠是重點，直接測試。在這個 schema</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>TABLE</span> users (
+</span></span><span style=display:flex><span>    id SERIAL <span style=color:#66d9ef>PRIMARY</span> <span style=color:#66d9ef>KEY</span>,
+</span></span><span style=display:flex><span>    name VARCHAR(<span style=color:#ae81ff>100</span>),
+</span></span><span style=display:flex><span>    color VARCHAR(<span style=color:#ae81ff>30</span>),
+</span></span><span style=display:flex><span>    properties JSONB
+</span></span><span style=display:flex><span>);
+</span></span></code></pre></div><p>之下，簡單測試一下 query 的效能。塞入一萬筆的假資料，並且在 properties 裡面都放了 &ldquo;color&rdquo; 的 key-value pair。分別針對 color 欄位以期 properties 欄位進行 query，得到下列結果：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-fallback data-lang=fallback><span style=display:flex><span>postgres=# EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM users WHERE color = &#39;green&#39;;
+</span></span><span style=display:flex><span>                                                QUERY PLAN                                                
+</span></span><span style=display:flex><span>----------------------------------------------------------------------------------------------------------
+</span></span><span style=display:flex><span> Seq Scan on users  (cost=0.00..2752.00 rows=6793 width=90) (actual time=0.048..15.136 rows=6744 loops=1)
+</span></span><span style=display:flex><span>   Filter: ((color)::text = &#39;green&#39;::text)
+</span></span><span style=display:flex><span>   Rows Removed by Filter: 93256
+</span></span><span style=display:flex><span>   Buffers: shared hit=1502
+</span></span><span style=display:flex><span> Planning Time: 0.078 ms
+</span></span><span style=display:flex><span> Execution Time: 15.686 ms
+</span></span><span style=display:flex><span>(6 rows)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>postgres=# EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM users WHERE properties-&gt;&gt;&#39;color&#39; = &#39;green&#39;;
+</span></span><span style=display:flex><span>                                               QUERY PLAN                                                
+</span></span><span style=display:flex><span>---------------------------------------------------------------------------------------------------------
+</span></span><span style=display:flex><span> Seq Scan on users  (cost=0.00..3002.00 rows=500 width=90) (actual time=0.026..28.693 rows=6744 loops=1)
+</span></span><span style=display:flex><span>   Filter: ((properties -&gt;&gt; &#39;color&#39;::text) = &#39;green&#39;::text)
+</span></span><span style=display:flex><span>   Rows Removed by Filter: 93256
+</span></span><span style=display:flex><span>   Buffers: shared hit=1502
+</span></span><span style=display:flex><span> Planning Time: 0.083 ms
+</span></span><span style=display:flex><span> Execution Time: 29.179 ms
+</span></span><span style=display:flex><span>(6 rows)
+</span></span></code></pre></div><p>在兩者都是 Seq Scan 的前提下，執行時間大約差了一倍。接著來替 color 與 properties.color 加上 index 後，再來嘗試一次 query。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-fallback data-lang=fallback><span style=display:flex><span>postgres=# EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM users WHERE color = &#39;green&#39;;
+</span></span><span style=display:flex><span>                                                       QUERY PLAN                                                        
+</span></span><span style=display:flex><span>-------------------------------------------------------------------------------------------------------------------------
+</span></span><span style=display:flex><span> Bitmap Heap Scan on users  (cost=76.94..1663.85 rows=6793 width=90) (actual time=0.672..3.106 rows=6744 loops=1)
+</span></span><span style=display:flex><span>   Recheck Cond: ((color)::text = &#39;green&#39;::text)
+</span></span><span style=display:flex><span>   Heap Blocks: exact=1486
+</span></span><span style=display:flex><span>   Buffers: shared hit=1486 read=8
+</span></span><span style=display:flex><span>   -&gt;  Bitmap Index Scan on idx_color  (cost=0.00..75.24 rows=6793 width=0) (actual time=0.424..0.425 rows=6744 loops=1)
+</span></span><span style=display:flex><span>         Index Cond: ((color)::text = &#39;green&#39;::text)
+</span></span><span style=display:flex><span>         Buffers: shared read=8
+</span></span><span style=display:flex><span> Planning:
+</span></span><span style=display:flex><span>   Buffers: shared hit=31 read=2 dirtied=3
+</span></span><span style=display:flex><span> Planning Time: 0.365 ms
+</span></span><span style=display:flex><span> Execution Time: 3.517 ms
+</span></span><span style=display:flex><span>(11 rows)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>postgres=# EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM users WHERE properties-&gt;&gt;&#39;color&#39; = &#39;green&#39;;
+</span></span><span style=display:flex><span>                                                            QUERY PLAN                                                            
+</span></span><span style=display:flex><span>----------------------------------------------------------------------------------------------------------------------------------
+</span></span><span style=display:flex><span> Bitmap Heap Scan on users  (cost=8.17..1043.85 rows=500 width=90) (actual time=1.188..4.778 rows=6744 loops=1)
+</span></span><span style=display:flex><span>   Recheck Cond: ((properties -&gt;&gt; &#39;color&#39;::text) = &#39;green&#39;::text)
+</span></span><span style=display:flex><span>   Heap Blocks: exact=1486
+</span></span><span style=display:flex><span>   Buffers: shared hit=1486 read=8
+</span></span><span style=display:flex><span>   -&gt;  Bitmap Index Scan on idx_properties_color  (cost=0.00..8.04 rows=500 width=0) (actual time=0.871..0.872 rows=6744 loops=1)
+</span></span><span style=display:flex><span>         Index Cond: ((properties -&gt;&gt; &#39;color&#39;::text) = &#39;green&#39;::text)
+</span></span><span style=display:flex><span>         Buffers: shared read=8
+</span></span><span style=display:flex><span> Planning:
+</span></span><span style=display:flex><span>   Buffers: shared hit=2
+</span></span><span style=display:flex><span> Planning Time: 0.188 ms
+</span></span><span style=display:flex><span> Execution Time: 5.482 ms
+</span></span></code></pre></div><p>兩者讀取的效能都有顯著上升，但 JSON Field 明顯還是較慢。
+總結來說，如果對於讀取效能有較高的要求，或是很常基於某個欄位進行 query，就可以考慮直接把欄位加進去 table 而不是只放在 JSON Field 裡。</p><h2 id=格式化處理>格式化處理</h2><p>站在 server-side 或是後端開發的角度來說，如果預期 JSON Field 格式是固定的或是有固定有幾種不同的 schema，總是期望從資料庫拉回來的值都可以自動完成格式化，不要每一次存取都要多一道手續處理格式化的工作。
+在 Python 中可以利用 dataclass 來寫 getter/setter function 方便存取。以 Django 中的 model 為例，如果要記錄消費者付款資料，並且 payment gateway 來源有兩者：Stripe 與 Paypal，在 model 的部分可以改寫：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#f92672>from</span> django.db <span style=color:#f92672>import</span> models
+</span></span><span style=display:flex><span><span style=color:#f92672>from</span> django.contrib.postgres.fields <span style=color:#f92672>import</span> JSONField
+</span></span><span style=display:flex><span><span style=color:#f92672>from</span> dataclasses <span style=color:#f92672>import</span> dataclass, asdict
+</span></span><span style=display:flex><span><span style=color:#f92672>from</span> typing <span style=color:#f92672>import</span> Optional, Union
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>@dataclass</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>class</span> <span style=color:#a6e22e>StripeGateway</span>:
+</span></span><span style=display:flex><span>    <span style=color:#75715e># 放 stripe 交易過程的資料</span>
+</span></span><span style=display:flex><span>    stripe_version: str
+</span></span><span style=display:flex><span>    account_id: str <span style=color:#75715e># 只是舉例</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>@classmethod</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>def</span> <span style=color:#a6e22e>from_dict</span>(cls, data: dict) <span style=color:#f92672>-&gt;</span> <span style=color:#e6db74>&#39;StripeGateway&#39;</span>:
+</span></span><span style=display:flex><span>        <span style=color:#75715e># 利用 dataclass 輕鬆初始化</span>
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> cls(<span style=color:#f92672>**</span>data)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#a6e22e>@dataclass</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>class</span> <span style=color:#a6e22e>PaypalGateway</span>:
+</span></span><span style=display:flex><span>    <span style=color:#75715e># 放 paypal 交易過程的資料</span>
+</span></span><span style=display:flex><span>    paypal_environment: str
+</span></span><span style=display:flex><span>    client_id: str <span style=color:#75715e># 只是舉例</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>@classmethod</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>def</span> <span style=color:#a6e22e>from_dict</span>(cls, data: dict) <span style=color:#f92672>-&gt;</span> <span style=color:#e6db74>&#39;PaypalGateway&#39;</span>:
+</span></span><span style=display:flex><span>        <span style=color:#75715e># 利用 dataclass 輕鬆初始化</span>
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> cls(<span style=color:#f92672>**</span>data)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>class</span> <span style=color:#a6e22e>Payment</span>(models<span style=color:#f92672>.</span>Model):
+</span></span><span style=display:flex><span>    amount <span style=color:#f92672>=</span> models<span style=color:#f92672>.</span>DecimalField(max_digits<span style=color:#f92672>=</span><span style=color:#ae81ff>5</span>, decimal_places<span style=color:#f92672>=</span><span style=color:#ae81ff>2</span>)
+</span></span><span style=display:flex><span>    _gateway_detail <span style=color:#f92672>=</span> JSONField(db_column<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;gateway_detail&#39;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>@property</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>def</span> <span style=color:#a6e22e>gateway_detail</span>(self) <span style=color:#f92672>-&gt;</span> Optional[Union[StripeGateway, PaypalGateway]]:
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>if</span> self<span style=color:#f92672>.</span>_gateway_detail:
+</span></span><span style=display:flex><span>            gateway_type <span style=color:#f92672>=</span> self<span style=color:#f92672>.</span>_gateway_detail<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#39;type&#39;</span>)
+</span></span><span style=display:flex><span>            gateway_data <span style=color:#f92672>=</span> self<span style=color:#f92672>.</span>_gateway_detail<span style=color:#f92672>.</span>get(<span style=color:#e6db74>&#39;data&#39;</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>if</span> gateway_type <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;stripe&#39;</span>: <span style=color:#75715e># 利用 type 來分類</span>
+</span></span><span style=display:flex><span>                <span style=color:#66d9ef>return</span> StripeGateway<span style=color:#f92672>.</span>from_dict(gateway_data)
+</span></span><span style=display:flex><span>            <span style=color:#66d9ef>elif</span> gateway_type <span style=color:#f92672>==</span> <span style=color:#e6db74>&#39;paypal&#39;</span>:
+</span></span><span style=display:flex><span>                <span style=color:#66d9ef>return</span> PaypalGateway<span style=color:#f92672>.</span>from_dict(gateway_data)
+</span></span><span style=display:flex><span>        <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>None</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>    <span style=color:#a6e22e>@gateway_detail.setter</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>def</span> <span style=color:#a6e22e>gateway_detail</span>(self, gateway: Union[StripeGateway, PaypalGateway]) <span style=color:#f92672>-&gt;</span> <span style=color:#66d9ef>None</span>:
+</span></span><span style=display:flex><span>        gateway_type <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;stripe&#39;</span> <span style=color:#66d9ef>if</span> isinstance(gateway, StripeGateway) <span style=color:#66d9ef>else</span> <span style=color:#e6db74>&#39;paypal&#39;</span>
+</span></span><span style=display:flex><span>        self<span style=color:#f92672>.</span>_gateway_detail <span style=color:#f92672>=</span> {
+</span></span><span style=display:flex><span>            <span style=color:#e6db74>&#39;type&#39;</span>: gateway_type, <span style=color:#75715e># 利用 type 來分類</span>
+</span></span><span style=display:flex><span>            <span style=color:#e6db74>&#39;data&#39;</span>: asdict(gateway) <span style=color:#75715e># data 才存真正的資料們</span>
+</span></span><span style=display:flex><span>        }
+</span></span></code></pre></div><p>在存入/取出時，操作如下：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=display:flex><span><span style=color:#f92672>from</span> myapp.models <span style=color:#f92672>import</span> Payment, StripeGateway, PaypalGateway
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Create a payment with Stripe</span>
+</span></span><span style=display:flex><span>stripe_gateway <span style=color:#f92672>=</span> StripeGateway(stripe_version<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;2020-08-27&#39;</span>, account_id<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;fake_account_id&#39;</span>)
+</span></span><span style=display:flex><span>payment_with_stripe <span style=color:#f92672>=</span> Payment(amount<span style=color:#f92672>=</span><span style=color:#ae81ff>200.00</span>, gateway_detail<span style=color:#f92672>=</span>stripe_gateway)
+</span></span><span style=display:flex><span>payment_with_stripe<span style=color:#f92672>.</span>save()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Create a payment with Paypal</span>
+</span></span><span style=display:flex><span>paypal_gateway <span style=color:#f92672>=</span> PaypalGateway(paypal_environment<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;sandbox&#39;</span>, client_id<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;fake_client_id&#39;</span>)
+</span></span><span style=display:flex><span>payment_with_paypal <span style=color:#f92672>=</span> Payment(amount<span style=color:#f92672>=</span><span style=color:#ae81ff>200.00</span>, gateway_detail<span style=color:#f92672>=</span>paypal_gateway)
+</span></span><span style=display:flex><span>payment_with_paypal<span style=color:#f92672>.</span>save()
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>print(payment_with_stripe<span style=color:#f92672>.</span>gateway_detail<span style=color:#f92672>.</span>stripe_version)
+</span></span><span style=display:flex><span><span style=color:#75715e># output: 2020-08-27</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>print(payment_with_paypal<span style=color:#f92672>.</span>gateway_detail<span style=color:#f92672>.</span>paypal_environment)
+</span></span><span style=display:flex><span><span style=color:#75715e># output: sandbox</span>
+</span></span></code></pre></div><p>如此一來，寫 code 的過程就更輕鬆了一些。</p><h2 id=結論>結論</h2><p>對開發者來說，RDB 開始完善支援 JSON Field 是一件舒服的事情。在開發與維護之間做取捨，是一個無止境的工程問題，本篇文記錄下自己的用法，給未來的自己一個參考依據。</p></section><div class=post-tags><nav class="nav tags"><ul class=tags><li><a href=/tags/postgresql>postgresql</a></li><li><a href=/tags/database>database</a></li><li><a href=/tags/python>python</a></li><li><a href=/tags/json>json</a></li><li><a href=/tags/django>django</a></li></ul></nav></div></article></main><footer><div style=display:flex><a class=soc href=https://twitter.com/PevenC rel=me title=Twitter><i data-feather=twitter></i></a>
+<a class=border></a><a class=soc href=https://www.linkedin.com/in/po-chih-chang-2b9847113/ rel=me title=LinkedIn><i data-feather=linkedin></i></a>
+<a class=border></a><a class=soc href=https://www.facebook.com/peven.chang rel=me title=Facebook><i data-feather=facebook></i></a>
+<a class=border></a></div><div class=footer-info>2023 © Peven | <a href=https://github.com/athul/archie>Archie Theme</a> | Built with <a href=https://gohugo.io>Hugo</a></div></footer><script>feather.replace()</script></div></body></html>
